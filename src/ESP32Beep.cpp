@@ -1,6 +1,6 @@
 // #############################################################################
 // ###                                                                       ###
-// ### General Purpose Logging toolkit for MicroControllers                  ###
+// ### Generating beeps with PWM HW on the ESP32                             ###
 // ### https://github.com/Strooom/ESP32Beep                                  ###
 // ### Author(s) : Pascal Roobrouck - @strooom                               ###
 // ### License : https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode ###
@@ -8,9 +8,6 @@
 // #############################################################################
 
 #include "ESP32Beep.h"
-#include "logging.h"
-
-extern uLog theLog;
 
 Beep::Beep(uint8_t theAudioOutput, uint8_t theAmplifierEnable) : mode{beepModes::Idle}, audioOutput{theAudioOutput}, amplifierEnable{theAmplifierEnable}, duration{0}, startTime{0} {
     patternBuffer[0] = 0x00;        // terminate an empty string in the patternBuffer
@@ -34,7 +31,6 @@ void Beep::initialize() {
 #endif
     setPWMFrequency(defaultFrequency);        // Enable the PWM output with a default frequency
     mode = beepModes::Idle;
-    theLog.output(loggingLevel::Debug, "Beep::initialized");
 }
 
 void Beep::output(bool onOff) {
@@ -47,8 +43,8 @@ void Beep::output(bool onOff) {
 }
 
 void Beep::output(uint32_t theDuration) {
-    mode = beepModes::DurationOn;
-    duration = theDuration;        //
+    mode     = beepModes::DurationOn;
+    duration = theDuration;
     setStartTime();
     setAmplifierOnOff(true);
 }

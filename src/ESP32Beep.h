@@ -18,7 +18,6 @@
 #include <Arduino.h>
 #else
 #include <inttypes.h>
-
 #include <cstring>
 #endif
 
@@ -36,9 +35,8 @@ class Beep {
     bool isReady() const;        // returns true when current beep pattern is ready..
     void run();                  // background processing for beeps in progress
 
-#if !defined(UnitTesting) && !defined(UNIT_TEST)
+
   private:        // commented out during unit testing
-#endif
     static constexpr double defaultFrequency = 440;
     static constexpr int PWMchannel = 0;
     static constexpr int PWMresolution = 8;
