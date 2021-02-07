@@ -28,25 +28,24 @@ class Beep {
     void initialize();
     void output(float frequency, uint32_t duration);          // send out a beep, frequency in Hz, duration in ms
     void output(float frequency, const char* pattern);        // send out a beep, according to a certain pattern
-    void output(bool on);
-    void output(uint32_t duration);          // send out a beep, current frequency in Hz, duration in ms
-    void output(const char* pattern);        // send out a beep, according to a certain pattern,
+    void output(bool on);                                     //
+    void output(uint32_t duration);                           // send out a beep, current frequency in Hz, duration in ms
+    void output(const char* pattern);                         // send out a beep, according to a certain pattern,
 
     bool isReady() const;        // returns true when current beep pattern is ready..
     void run();                  // background processing for beeps in progress
 
-
   private:        // commented out during unit testing
-    static constexpr double defaultFrequency = 440;
-    static constexpr int PWMchannel = 0;
-    static constexpr int PWMresolution = 8;
+    static constexpr double defaultFrequency  = 440;
+    static constexpr int PWMchannel           = 0;
+    static constexpr int PWMresolution        = 8;
     static constexpr uint32_t defaultDuration = 100;
 
     enum class beepModes : uint8_t {
-        Idle = 0,                   // No beeps running
-        BoolOn = 1,                 // Permanently On
-        DurationOn = 2,             // On for certain time
-        PatternExecuting = 3        // busy executing a pattern
+        Idle             = 0,        // No beeps running
+        BoolOn           = 1,        // Permanently On
+        DurationOn       = 2,        // On for certain time
+        PatternExecuting = 3         // busy executing a pattern
     } mode = beepModes::Idle;
 
     uint8_t audioOutput;            // GPIO where the beeps are sent out
