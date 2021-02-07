@@ -7,7 +7,7 @@
 // ###                                                                       ###
 // #############################################################################
 
-// This class can generate Beeps through the built-in audio hardware of the ESP32
+// This class can generate Beeps through the built-in hardware of the ESP32
 // It uses the built-in PWM channels. Duty cycle is always set to 50%, but we vary the frequency.
 // It generates a square wave on the GPIO of your choice
 // Furthermore, the on/off behaviour is controlled thru a second GPIO, which will enable/disable the audio amplifier.
