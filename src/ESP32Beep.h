@@ -23,9 +23,9 @@
 
 class Beep {
   public:
-    Beep(uint8_t AudioOutput, uint8_t AmplifierEnable);        // Constructor
-    ~Beep();                                                   // Destructor
-    void initialize();
+    Beep(uint8_t AmplifierEnable);        // Constructor
+    ~Beep();                              // Destructor
+    void initialize(uint8_t AudioOutput);
     void output(float frequency, uint32_t duration);          // send out a beep, frequency in Hz, duration in ms
     void output(float frequency, const char* pattern);        // send out a beep, according to a certain pattern
     void output(bool on);                                     //
