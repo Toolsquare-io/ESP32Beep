@@ -9,7 +9,7 @@
 
 #include "ESP32Beep.h"
 
-Beep::Beep(uint8_t theAudioOutput, uint8_t theAmplifierEnable) : mode{beepModes::Idle}, audioOutput{theAudioOutput}, amplifierEnable{theAmplifierEnable}, duration{0}, startTime{0} {
+Beep::Beep(uint8_t theAmplifierEnable) : mode{beepModes::Idle}, amplifierEnable{theAmplifierEnable}, duration{0}, startTime{0} {
     patternBuffer[0] = 0x00;        // terminate an empty string in the patternBuffer
 }
 
@@ -20,7 +20,8 @@ Beep::~Beep() {
 #endif
 }
 
-void Beep::initialize() {
+void Beep::initialize(uint8_t theAudioOutput) {
+    audioOutput = theAudioOutput;
 #ifndef WIN32
     pinMode(amplifierEnable, OUTPUT);        // set this pin as an output towards the amplifier
 #endif
