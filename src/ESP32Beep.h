@@ -16,6 +16,7 @@
 
 #ifndef WIN32
 #include <Arduino.h>
+#include <esp_timer.h>
 #else
 #include <inttypes.h>
 #include <cstring>
@@ -40,6 +41,7 @@ class Beep {
     static constexpr int PWMchannel           = 0;
     static constexpr int PWMresolution        = 8;
     static constexpr uint32_t defaultDuration = 100;
+    static constexpr uint32_t safetyTimeoutMultiplier = 2;  // Safety timeout is 2x the requested duration
 
     enum class beepModes : uint8_t {
         Idle             = 0,        // No beeps running
@@ -62,4 +64,11 @@ class Beep {
     void setStartTime();
     bool hasExpired();
     void patternCharToTone();
+    void startSafetyTimer(uint32_t timeoutMs);
+    void stopSafetyTimer();
+    static void IRAM_ATTR safetyTimerCallback(void* arg);
+
+#ifndef WIN32
+    esp_timer_handle_t safetyTimer = nullptr;
+#endif
 };

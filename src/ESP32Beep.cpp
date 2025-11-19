@@ -15,6 +15,12 @@ Beep::Beep(uint8_t theAmplifierEnable) : mode{beepModes::Idle}, amplifierEnable{
 
 Beep::~Beep() {
 #ifndef WIN32
+    // Clean up safety timer
+    if (safetyTimer != nullptr) {
+        esp_timer_stop(safetyTimer);
+        esp_timer_delete(safetyTimer);
+        safetyTimer = nullptr;
+    }
     ledcDetachPin(audioOutput);             // TODO : check if there are other things to clean up
     pinMode(amplifierEnable, INPUT);        // reset this pin as an input
 #endif
@@ -29,6 +35,17 @@ void Beep::initialize(uint8_t theAudioOutput) {
 #ifndef WIN32
     ledcSetup(PWMchannel, defaultFrequency, PWMresolution);        // Configure a PWM driver/channel
     ledcAttachPin(audioOutput, PWMchannel);                        // Attach its output to a pin
+
+    // Create safety timer to prevent continuous beep if run() is not called
+    if (safetyTimer == nullptr) {
+        esp_timer_create_args_t timerConfig = {
+            .callback = &Beep::safetyTimerCallback,
+            .arg = this,
+            .dispatch_method = ESP_TIMER_TASK,
+            .name = "beep_safety"
+        };
+        esp_timer_create(&timerConfig, &safetyTimer);
+    }
 #endif
     setPWMFrequency(defaultFrequency);        // Enable the PWM output with a default frequency
     mode = beepModes::Idle;
@@ -48,16 +65,22 @@ void Beep::output(uint32_t theDuration) {
     duration = theDuration;
     setStartTime();
     setAmplifierOnOff(true);
+    startSafetyTimer(theDuration * safetyTimeoutMultiplier);  // Safety timer at 2x duration
 }
 
 void Beep::output(const char* pattern) {
     mode = beepModes::PatternExecuting;
-    strncpy(patternBuffer, pattern, 16);        // copy new pattern to beep's internal buffer
-    patternBuffer[16] = 0x00;                   // ensure proper termination
+    // Clear entire buffer first to avoid garbage data
+    memset(patternBuffer, 0, patternBufferLength + 1);
+    // Copy up to patternBufferLength characters
+    strncpy(patternBuffer, pattern, patternBufferLength);
+    patternBuffer[patternBufferLength] = 0x00;  // Ensure proper termination
 
     duration = defaultDuration;
     patternCharToTone();
     setStartTime();
+    // Start safety timer for patterns (max pattern length * default duration * 2)
+    startSafetyTimer(patternBufferLength * defaultDuration * safetyTimeoutMultiplier);
 }
 
 bool Beep::isReady() const {
@@ -79,6 +102,7 @@ void Beep::run() {
         case Beep::beepModes::DurationOn:
             if (hasExpired()) {
                 setAmplifierOnOff(false);
+                stopSafetyTimer();  // Cancel safety timer - beep completed normally
                 mode = beepModes::Idle;
             }
             break;
@@ -112,10 +136,12 @@ void Beep::setPWMFrequency(float frequency) {
 }
 
 void Beep::shiftPattern() {
-    for (uint8_t i = 0; i < patternBufferLength; i++)        // shift all characters one position forward
-    {
+    // Shift all characters one position forward, avoiding buffer overflow
+    for (uint8_t i = 0; i < patternBufferLength - 1; i++) {
         patternBuffer[i] = patternBuffer[i + 1];
     }
+    // Ensure buffer remains null-terminated
+    patternBuffer[patternBufferLength - 1] = 0x00;
 }
 
 void Beep::setStartTime() {
@@ -136,6 +162,7 @@ void Beep::patternCharToTone() {
     switch (patternBuffer[0]) {
         case 0x00:
             setAmplifierOnOff(false);
+            stopSafetyTimer();  // Cancel safety timer - pattern completed normally
             mode = beepModes::Idle;
             break;
 
@@ -156,5 +183,36 @@ void Beep::patternCharToTone() {
         default:
             setAmplifierOnOff(true);
             break;
+    }
+}
+
+void Beep::startSafetyTimer(uint32_t timeoutMs) {
+#ifndef WIN32
+    if (safetyTimer != nullptr) {
+        // Stop any existing timer first
+        esp_timer_stop(safetyTimer);
+        // Start timer with timeout in microseconds
+        esp_timer_start_once(safetyTimer, static_cast<uint64_t>(timeoutMs) * 1000);
+    }
+#endif
+}
+
+void Beep::stopSafetyTimer() {
+#ifndef WIN32
+    if (safetyTimer != nullptr) {
+        esp_timer_stop(safetyTimer);
+    }
+#endif
+}
+
+void IRAM_ATTR Beep::safetyTimerCallback(void* arg) {
+    // This callback fires only if run() was not called in time
+    // It's a safety mechanism to prevent continuous beep
+    Beep* instance = static_cast<Beep*>(arg);
+    if (instance != nullptr) {
+        instance->setAmplifierOnOff(false);  // Force amplifier OFF
+        instance->mode = beepModes::Idle;
+        // Note: In a production system, you might want to log this event
+        // to help diagnose firmware issues that prevent run() from being called
     }
 }
